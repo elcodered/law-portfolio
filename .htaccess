@@ -1,0 +1,22 @@
+# Compatibility for shared hosting that points the domain at the project root.
+# Prefer configuring the domain document root to this project's public/ folder.
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block hidden files, including .env and .git, at every URL depth.
+    RewriteRule (^|/)\.(?!well-known(?:/|$)) - [F,L,NC]
+
+    # Let public/.htaccess handle the public directory and Laravel routes.
+    RewriteRule ^public(?:/|$) - [L]
+
+    # Route ALL other requests into public/, including existing root files.
+    # Do not add !-f or !-d exceptions: application source must not be served.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Fail closed if URL rewriting is unavailable on a project-root deployment.
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>

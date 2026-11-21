@@ -92,3 +92,11 @@ If Hostinger reports “Your lock file does not contain a compatible set of pack
 Do not delete `composer.lock`, run `composer update` on the server, or bypass platform checks with `--ignore-platform-reqs`. Commit and push both `composer.json` and `composer.lock` together before redeploying. The platform setting controls dependency resolution; it does not upgrade the server’s PHP interpreter.
 
 Hostinger references: [PHP version configuration](https://www.hostinger.com/support/1575755-how-to-change-the-php-version-of-your-hostinger-hosting-plan/) and [Composer troubleshooting](https://www.hostinger.com/support/5792082-how-to-solve-common-composer-issues-at-hostinger/).
+
+## Hostinger 403 after a successful deployment
+
+A successful build does not configure the web server's document root. If `/` returns 403 while `/public/favicon.svg` loads, Hostinger is serving the repository root instead of Laravel's public directory.
+
+Prefer setting the document root to `<deployed-project>/public`, or using the public-only layout described above. For fixed-root Git deployments where the whole project is cloned into `public_html`, this repository includes a root `.htaccess` compatibility fallback. Deploy it alongside the existing `public/.htaccess`, with hidden files included. It routes every request into `public/`, blocks hidden-file URLs, disables directory listing, and denies access if rewriting is unavailable. It intentionally does not serve existing files from the project root. Apache/LiteSpeed must allow these `.htaccess` directives; Nginx requires an equivalent server configuration and does not read `.htaccess`.
+
+If `/public/` returns HTTP 500, routing is only the first problem. Read the latest exception in `storage/logs/laravel.log` (or Hostinger's PHP error log if Laravel cannot write its log) before changing application settings. Verify the production `.env` exists, `APP_KEY` is set, the PHP worker can write to `storage/` and `bootstrap/cache/`, and `public/build/manifest.json` exists. Use `php artisan key:generate` only for a new installation without an application key; preserve an existing key. After correcting the configuration, run `php artisan optimize:clear`. Do not enable public debug output to diagnose a production error.
