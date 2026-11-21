@@ -4,7 +4,7 @@ A Laravel 13 + Inertia 3 + React 19 + TypeScript portfolio. The public pages use
 
 ## Local development with Laravel Herd
 
-Requirements: PHP 8.3 or later (local implementation verified with PHP 8.5.13), Composer, Node 22+, npm. Existing lockfiles define the dependency versions.
+Requirements: PHP 8.4.1 or later (local implementation verified with PHP 8.5.13), Composer, Node 22+, npm. Existing lockfiles define the dependency versions.
 
 ```sh
 composer install
@@ -62,7 +62,7 @@ Blade provides a canonical URL, description, Open Graph metadata, and Person str
 
 ## Hostinger shared hosting
 
-1. Select a plan with SSH/Composer and PHP 8.3+ and verify support for this lockfile’s PHP/platform requirements. Run `composer check-platform-reqs` on the host. Some plans cannot run long-lived Node/SSR processes.
+1. Select a plan with SSH/Composer and PHP 8.4.1+ and verify support for this lockfile’s PHP/platform requirements. Run `composer check-platform-reqs` on the host. Some plans cannot run long-lived Node/SSR processes.
 2. Build locally with `npm ci && npm run build`. Upload the application and `public/build/`; exclude `.env`, `node_modules`, local databases, and `public/hot`. Install server dependencies with `composer install --no-dev --optimize-autoloader`.
 3. Point the domain document root to the application’s **public/** directory. Never expose the repository root. Keep `.env`, `vendor/`, `storage/`, and application code outside the public web root. If the panel fixes the root to `public_html`, keep the Laravel application above it and make `public_html` the equivalent of `public/`; adjust `index.php` bootstrap paths for that actual layout. Prefer a supported document-root change or symlink over relocating Laravel files manually.
 4. Create the production `.env`: `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://your-domain`, a freshly generated `APP_KEY`, `SESSION_DRIVER=file`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync`. Configure mail only if you later implement a real mail flow.
@@ -78,3 +78,17 @@ A VPS can run the optional Inertia SSR process under systemd or a process manage
 ## Awaiting owner-supplied details
 
 Verified email/social URLs and resume; approved screenshots; exact contributions and lifecycle status for provisional projects; verified detailed descriptions for the DOST acronym entries. No fabricated testimonials, performance metrics, photos, or contact details are included.
+
+## Hostinger Composer compatibility
+
+This lockfile requires **PHP 8.4.1 or later**, including its development dependencies. PHP 8.5 matches the local runtime used for validation. Although Laravel itself supports PHP 8.3, the locked Symfony and test-tool versions require a newer runtime. `composer.json` declares the actual minimum and resolves future dependency updates against PHP 8.4.1; CI checks PHP 8.4 and 8.5.
+
+If Hostinger reports “Your lock file does not contain a compatible set of packages” during its automatic Composer step:
+
+1. Select PHP **8.5** (or a current PHP 8.4 patch) for the deployment build environment and the website runtime, then redeploy. In hPanel, the website setting is under **Websites → Dashboard → Advanced → PHP Configuration**. A website PHP change may not change the CLI/build interpreter, so check both.
+2. In the build environment or SSH session, run `php -v` and `composer check-platform-reqs --lock`. If the install log is abbreviated, run `composer install --prefer-dist --no-interaction` without `--quiet` to see the exact incompatible package or missing extension.
+3. For the production install, use `composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader`. This skips test/development tools, but the locked production packages still require PHP 8.4.1+.
+
+Do not delete `composer.lock`, run `composer update` on the server, or bypass platform checks with `--ignore-platform-reqs`. Commit and push both `composer.json` and `composer.lock` together before redeploying. The platform setting controls dependency resolution; it does not upgrade the server’s PHP interpreter.
+
+Hostinger references: [PHP version configuration](https://www.hostinger.com/support/1575755-how-to-change-the-php-version-of-your-hostinger-hosting-plan/) and [Composer troubleshooting](https://www.hostinger.com/support/5792082-how-to-solve-common-composer-issues-at-hostinger/).
