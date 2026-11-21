@@ -9,3 +9,6 @@
 CHANGELOG.md export-ignore
 README.md export-ignore
 .github/workflows/browser-tests.yml export-ignore
+
+# Preserve generated, content-hashed deployment assets exactly as emitted by Vite.
+public/build/** linguist-generated=true -whitespace

@@ -4,12 +4,12 @@ A Laravel 13 + Inertia 3 + React 19 + TypeScript portfolio. The public pages use
 
 ## Local development with Laravel Herd
 
-Requirements: PHP 8.4.1 or later (local implementation verified with PHP 8.5.13), Composer, Node 22+, npm. Existing lockfiles define the dependency versions.
+Requirements: PHP 8.4.1 or later (local implementation verified with PHP 8.5.13), Composer, Node 22+, npm. Existing lockfiles define the dependency versions. On a fresh clone without `.env`, Composer creates production defaults automatically; for local development, copy `.env.example` before installing dependencies.
 
 ```sh
+cp .env.example .env
 composer install
 npm ci
-cp .env.example .env
 php artisan key:generate
 npm run dev
 ```
@@ -100,3 +100,21 @@ A successful build does not configure the web server's document root. If `/` ret
 Prefer setting the document root to `<deployed-project>/public`, or using the public-only layout described above. For fixed-root Git deployments where the whole project is cloned into `public_html`, this repository includes a root `.htaccess` compatibility fallback. Deploy it alongside the existing `public/.htaccess`, with hidden files included. It routes every request into `public/`, blocks hidden-file URLs, disables directory listing, and denies access if rewriting is unavailable. It intentionally does not serve existing files from the project root. Apache/LiteSpeed must allow these `.htaccess` directives; Nginx requires an equivalent server configuration and does not read `.htaccess`.
 
 If `/public/` returns HTTP 500, routing is only the first problem. Read the latest exception in `storage/logs/laravel.log` (or Hostinger's PHP error log if Laravel cannot write its log) before changing application settings. Verify the production `.env` exists, `APP_KEY` is set, the PHP worker can write to `storage/` and `bootstrap/cache/`, and `public/build/manifest.json` exists. Use `php artisan key:generate` only for a new installation without an application key; preserve an existing key. After correcting the configuration, run `php artisan optimize:clear`. Do not enable public debug output to diagnose a production error.
+
+## Git deployment on Hostinger Business (prepared build)
+
+This repository includes compiled `public/build/` assets because the PHP Git deployment may run Composer without running Node. Before pushing frontend changes, run `npm ci` (when dependencies change), `npm run build`, and commit the updated assets and manifest together. Do not commit `public/hot`.
+
+The `post-autoload-dump` Composer hook now runs `scripts/prepare-deployment.php` before Laravel package discovery. On the server it:
+
+- Creates the required storage/cache directories if missing.
+- Creates a new `.env` with `.env.hostinger.example` production defaults only if no environment content exists. The configured public URL is `https://bright-mediumturquoise-parrot-86.hostingersite.com`; change the template when changing domains.
+- Generates a random AES-256 application key only if the server key is blank; no actual key is stored in this repository or printed in build logs.
+- Preserves an existing environment and key on subsequent installs. A valid inherited `APP_KEY` is used when initializing a blank key. An empty or invalid inherited key fails with a clear error rather than masking the problem.
+- Lets Laravel's following Composer hook clear cached configuration before package discovery.
+
+Push the prepared commit to the connected `main` branch, then let Hostinger's existing automatic Composer install run normally. Keep PHP 8.5 and `proc_open` enabled as previously configured. This flow does not run migrations, create accounts, or require a database for the portfolio.
+
+The generated `.env` is ignored by Git and must remain on Hostinger between deployments. If your deployment mode replaces the entire environment instead of retaining `.env`, configure a persistent server `APP_KEY` through Hostinger or keep a private backup and restore it on replacement. Never regenerate an established application's key on every build. Also verify the resulting `.env` reaches the live application if Hostinger uses a separate build directory; a successful Composer build alone does not prove that runtime environment files were retained.
+
+The automatic setup preserves existing settings. If a preexisting `.env` still has local/debug/database defaults, correct those server settings using the production example. Do not run `composer setup` for deployment: it is a local development helper. For a manual rerun after a completed install, use `php scripts/prepare-deployment.php` then `php artisan config:clear`.
