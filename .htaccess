@@ -1,3 +1,4 @@
+# Hostinger fixed-folder fallback for Laravel deployments.
 # Compatibility for shared hosting that points the domain at the project root.
 # Prefer configuring the domain document root to this project's public/ folder.
 Options -Indexes
